@@ -229,7 +229,7 @@ The original experiments report the following results:
 ### 1️⃣ Clone the Repository
 
 ```bash
-git clone https://github.com/AsadAliEng/AI-Human-Pose-Analysis-System.git
+git clone https://github.com/AsadAliEngineer/AI-Human-Pose-Analysis-System.git
 cd AI-Human-Pose-Analysis-System
 git submodule update --init --recursive
 ```
@@ -361,8 +361,8 @@ This project builds on the open-source [COCO Human Pose](https://github.com/robe
 
 <div align="center">
 
-<a href="https://github.com/AsadAliEng">
-  <img src="https://github.com/AsadAliEng.png?size=160" width="140" alt="Asad Ali GitHub profile">
+<a href="https://github.com/AsadAliEngineer">
+  <img src="https://github.com/AsadAliEngineer.png?size=160" width="140" alt="Asad Ali GitHub profile">
 </a>
 
 ### Asad Ali
@@ -370,19 +370,19 @@ This project builds on the open-source [COCO Human Pose](https://github.com/robe
 **Developer · Repository Maintainer**
 
 <p>
-  <a href="https://github.com/AsadAliEng">
-    <img src="https://img.shields.io/badge/GitHub-AsadAliEng-181717?style=for-the-badge&logo=github" alt="GitHub profile">
+  <a href="https://github.com/AsadAliEngineer">
+    <img src="https://img.shields.io/badge/GitHub-AsadAliEngineer-181717?style=for-the-badge&logo=github" alt="GitHub profile">
   </a>
-  <a href="mailto:asadali.cryptoeng@gmail.com">
-    <img src="https://img.shields.io/badge/Email-asadali.cryptoeng%40gmail.com-EA4335?style=for-the-badge&logo=gmail&logoColor=white" alt="Email Asad Ali">
+  <a href="mailto:asadalieng1107@gmail.com">
+    <img src="https://img.shields.io/badge/Email-asadalieng1107%40gmail.com-EA4335?style=for-the-badge&logo=gmail&logoColor=white" alt="Email Asad Ali">
   </a>
 </p>
 
 | Detail | Information |
 |---|---|
 | 👤 **Name** | Asad Ali |
-| 💻 **GitHub** | [@AsadAliEng](https://github.com/AsadAliEng) |
-| 📧 **Email** | [asadali.cryptoeng@gmail.com](mailto:asadali.cryptoeng@gmail.com) |
+| 💻 **GitHub** | [@AsadAliEngineer](https://github.com/AsadAliEngineer) |
+| 📧 **Email** | [asadalieng1107@gmail.com](mailto:asadalieng1107@gmail.com) |
 
 <sub>Open to technical discussions, collaboration, and computer-vision research.</sub>
 
