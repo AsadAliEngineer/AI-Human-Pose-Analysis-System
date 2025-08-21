@@ -1,179 +1,403 @@
-# Human Pose Estimation on COCO Dataset
+<div align="center">
 
-This repository contains the source code for training a deep neural network to perform human pose estimation from scratch. A brief excerpt from our final report is copied below.
+<img src="assets/pose-ai-hero.png" alt="AI Human Pose Analysis System - HDR pose analysis dashboard" width="100%">
 
-## Deployed Model
+<br>
 
-Our model is deployed [online here](https://share.streamlit.io/robertklee/coco-human-pose/main/human_pose_app.py)! Please be aware that the model only supports single-person human pose estimation. In the event there are multiple people in the frame, the model will label the skeleton of the **center-most person**.
+# 🧠 AI Human Pose Analysis System
 
-**Our final report is linked [here](report/final_report.pdf).**
+### Intelligent 2D pose estimation from pixels to 17 body keypoints
 
-Feel free to check out our demo photos, or upload your own to try out. If you encounter any issues, please open an issue in this repository.
-
-If you upload your own photos, the app **automatically detects the person and crops to them** before running the model, so you no longer need to pre-crop your image. Detection uses a small object detector run through OpenCV's DNN module; its weights are downloaded once on first use. When several people are present, the largest, most central person is used, and the detected person and the resulting crop are drawn on the original image so you can see what the model was given. Predictions and heatmaps are always mapped back onto your full-resolution image.
-
-If no person is detected, the app falls back to using the whole image. In that case, **please crop the photo so the person of interest is relatively centered**, taking up approximately 70-90% of the vertical space. The model is robust to cropped image boundaries being black, so don't worry about cropping to an irregular shape. We'll automatically center the image in our pre-processing pipeline. You can also turn automatic detection off with the sidebar toggle if you have already cropped the image yourself.
-
-## Example Outputs
-
-### Sample Output Predictions
-
-The following outputs show the predictions from a 4 hourglass stack model, epoch 107. The input image is on the left. The prediction image is on the right. The right-side body keypoints are magenta, and the left-side body keypoints are blue. Each joint-joint connection has its own assigned colour that is consistent across images. Keypoints that are not seen by the model are not displayed. These sample images are from the COCO 2017 dataset.
-
-
-<p align="center">
-  <img src="figures/skateboarder-orig.jpg" alt="skateboarder, input" style="width: 45%"/>
-  &nbsp; &nbsp; &nbsp; &nbsp;
-  <img src="figures/skateboarder-pred.jpg" alt="skateboarder, prediction" style="width: 45%"/>
+<p>
+  A research-focused computer-vision system that detects a person, predicts COCO body landmarks,<br>
+  visualizes joint confidence, and reconstructs an interpretable skeletal pose.
 </p>
 
-
-<p align="center">
-  <img src="figures/skateboarder2-orig.jpg" alt="skateboarder2, input" style="width: 45%"/>
-  &nbsp; &nbsp; &nbsp; &nbsp;
-  <img src="figures/skateboarder2-pred.jpg" alt="skateboarder2, prediction" style="width: 45%"/>
+<p>
+  <img src="https://img.shields.io/badge/Python-3.x-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3">
+  <img src="https://img.shields.io/badge/Model-Stacked%20Hourglass-8B5CF6?style=for-the-badge" alt="Stacked Hourglass">
+  <img src="https://img.shields.io/badge/Dataset-COCO%202017-FF6F00?style=for-the-badge" alt="COCO 2017">
+  <img src="https://img.shields.io/badge/Output-17%20Keypoints-22C55E?style=for-the-badge" alt="17 keypoints">
+  <img src="https://img.shields.io/badge/UI-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" alt="Streamlit">
 </p>
 
-
-<p align="center">
-  <img src="figures/paddleboarder-orig.jpg" alt="paddleboarder, input" style="width: 45%"/>
-  &nbsp; &nbsp; &nbsp; &nbsp;
-  <img src="figures/paddleboarder-pred.jpg" alt="paddleboarder, prediction" style="width: 45%"/>
+<p>
+  <a href="#-executive-summary">Overview</a> •
+  <a href="#-visual-showcase">Showcase</a> •
+  <a href="#-system-workflow">Workflow</a> •
+  <a href="#-model-architecture">Architecture</a> •
+  <a href="#-evaluation-snapshot">Evaluation</a> •
+  <a href="#-quick-start">Quick Start</a>
 </p>
 
+</div>
 
-<p align="center">
-  <img src="figures/baseball-orig.jpg" alt="baseball, input" style="width: 45%"/>
-  &nbsp; &nbsp; &nbsp; &nbsp;
-  <img src="figures/baseball-pred.jpg" alt="baseball, prediction" style="width: 45%"/>
-</p>
+---
 
-### Sample Heatmaps
+## 🧭 Executive Summary
 
-The model's unprocessed output is a series of heatmaps, one for each joint. Since intermediate supervision was used, we also visualize the heatmaps in the inner layers. To read the heatmap, each column represents one of the 17 joints. Each row represents a layer. The first layer is the first row, and the last layer is the second-last row. The final prediction for a particular joint is overlayed on the input image and displayed on the last row.
+**AI Human Pose Analysis System** transforms a monocular RGB image into a structured, 17-joint human skeleton. The workflow automatically identifies the primary subject, produces a centered person crop, estimates one confidence heatmap per COCO landmark, and projects the final keypoints back onto the original image.
 
-Notice that the model refines its predictions as we proceed deeper into the layers. For example, the first row predictions often identify both ankles, wrists, or other joints that are difficult to immediately discern left and right. Each image below that shows the model deciding which joint corresponds to the person's left/right.
+The project targets **single-frame, single-person, 2D pose estimation**. Its stacked hourglass network combines full-body context with the spatial precision required for small joints such as wrists, ankles, eyes, and ears.
 
-The columns, if numbered in increasing order from left to right (0, 1, 2, ..., 16), correspond to the joints in this labelled figure.
+### 📌 At a Glance
 
-![column order, labelled](figures/skeleton_442619_flip_107_labelled.png)
+| Category | Project specification |
+|---|---|
+| 🎯 **Primary task** | Single-person 2D human pose estimation |
+| 🖼️ **Input** | Monocular RGB image, normalized to **256 × 256** |
+| 🧠 **Core model** | Multi-stack hourglass encoder-decoder with residual blocks |
+| 🔥 **Prediction space** | **17** COCO joint-confidence heatmaps at **64 × 64** |
+| 🦴 **Output** | Keypoint coordinates, confidence values, and skeleton overlay |
+| 📚 **Training data** | COCO 2017 Keypoint Detection dataset |
+| 🔍 **Evaluation** | Object Keypoint Similarity (OKS) and PCK@0.2 |
+| 🖥️ **Interface** | Interactive Streamlit inference workflow |
 
-**4-layer hourglass, epoch 107**
+---
 
-![4-layer hourglass heatmaps](figures/hg4_heatmaps_560228_107.png)
+## ✨ Core Capabilities
 
-**8-layer hourglass, epoch 70**
+| | Capability | What it provides |
+|:--:|---|---|
+| 🎯 | **Automatic person localization** | Detects and crops the most prominent, center-weighted subject before pose inference |
+| 🦴 | **17-keypoint estimation** | Locates facial, upper-body, hip, knee, and ankle landmarks |
+| 🔥 | **Heatmap-based prediction** | Preserves spatial uncertainty instead of directly regressing joint coordinates |
+| 🧩 | **Iterative pose refinement** | Successive hourglass stacks improve difficult or ambiguous joint predictions |
+| 🖌️ | **Skeleton visualization** | Maps predicted landmarks back to the full-resolution source image |
+| 🔬 | **Explainable inference** | Exposes intermediate joint heatmaps and per-landmark confidence |
+| 📊 | **Quantitative evaluation** | Supports COCO-formatted OKS analysis and PCK-based joint accuracy |
+| ⚡ | **Interactive testing** | Accepts demo images or user uploads through a Streamlit interface |
 
-![8-layer hourglass heatmaps](figures/hg8_heatmaps_560228_70.png)
+> [!NOTE]
+> The HDR visuals in this README are polished application concepts. They demonstrate how this project's pose outputs could support sports science, movement screening, and supervised rehabilitation; they are not literal screenshots of the current Streamlit interface.
 
-To better see the model performing refinements, we retrieve a heatmap output from the **early stages** of training, epoch 15 of 107. Notice the ankles and knees (rightmost 4 columns). In the first layer, both are identified. As we proceed deeper into the model, it uses context and other cues to determine which side is the person's left and right.
+---
 
-![4-layer, epoch 15](figures/heatmaps_442619_15.png)
+## 🖼️ Visual Showcase
 
-## Getting Started
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="assets/biomechanics-analysis.png" alt="Biomechanics and form analysis example" width="100%">
+      <br>
+      <strong>🏋️ Biomechanics Analysis</strong>
+      <br>
+      <sub>Joint angles, balance zones, and movement-form interpretation.</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="assets/rehabilitation-assessment.png" alt="Rehabilitation movement assessment example" width="100%">
+      <br>
+      <strong>🩺 Rehabilitation Assessment</strong>
+      <br>
+      <sub>Pose symmetry, range of motion, and supervised mobility review.</sub>
+    </td>
+  </tr>
+</table>
 
-- init submodules
+### 🏃 Multi-Sport Pose Intelligence
+
+<img src="assets/multi-sport-analysis.png" alt="AI Human Pose Analysis System multi-sport examples" width="100%">
+
+A shared 17-keypoint representation can describe highly varied body configurations across sprinting, racquet sports, and controlled mobility exercises.
+
+---
+
+## ⚙️ System Workflow
+
+<img src="assets/pose-inference-pipeline.png" alt="AI Human Pose Analysis System inference pipeline" width="100%">
+
+| Stage | Operation | Result |
+|:--:|---|---|
+| **01** | 📥 **Input acquisition** | Load an RGB image containing the subject |
+| **02** | 🔎 **Person localization** | Select the most prominent center-weighted person |
+| **03** | ✂️ **Crop and preprocess** | Center, resize, and normalize the person crop |
+| **04** | 🧠 **Hourglass inference** | Combine global body context with local spatial features |
+| **05** | 🔥 **Heatmap prediction** | Produce a confidence surface for each of 17 joints |
+| **06** | 📍 **Coordinate extraction** | Upscale, smooth, threshold, and locate heatmap maxima |
+| **07** | 🦴 **Pose reconstruction** | Map keypoints to the source image and render the skeleton |
+
+### 🗺️ COCO Keypoint Map
+
+```text
+                         nose
+                    ┌─────┴─────┐
+                 left eye    right eye
+                    │              │
+                 left ear    right ear
+
+ left shoulder ─── right shoulder
+       │                  │
+ left elbow          right elbow
+       │                  │
+ left wrist          right wrist
+
+    left hip ───────── right hip
+       │                  │
+   left knee          right knee
+       │                  │
+  left ankle         right ankle
+```
+
+---
+
+## 🧠 Model Architecture
+
+The architecture uses symmetric encoder-decoder modules to repeatedly compress and recover spatial information. Lower-resolution layers capture global pose structure, while skip connections retain the detail needed for precise joint localization.
+
+```text
+┌──────────────────────────────┐
+│      RGB Image 256 × 256     │
+└──────────────┬───────────────┘
+               ▼
+┌──────────────────────────────┐
+│ Convolution + Residual Stem  │
+└──────────────┬───────────────┘
+               ▼
+┌──────────────────────────────┐
+│      Feature Map 64 × 64     │
+└──────────────┬───────────────┘
+               ▼
+┌──────────────────────────────────────────┐
+│          Stacked Hourglass Module        │
+│  Encoder → 4 × 4 Bottleneck → Decoder   │
+│       + same-resolution skip paths       │
+└──────────────┬───────────────────────────┘
+               ▼
+┌──────────────────────────────┐
+│  17 Supervised Joint Maps    │
+└──────────────┬───────────────┘
+               ▼
+┌──────────────────────────────┐
+│ Keypoints + Skeleton Overlay │
+└──────────────────────────────┘
+```
+
+### 💡 Why This Design Works
+
+- **Multi-scale context:** the bottleneck reasons about the full body configuration.
+- **Fine spatial recovery:** skip connections restore local joint detail.
+- **Residual learning:** alternate gradient paths support deeper optimization.
+- **Intermediate supervision:** every stack learns to produce and refine a valid pose.
+- **Heatmap confidence:** predictions remain spatially interpretable before coordinate extraction.
+
+---
+
+## 📊 Evaluation Snapshot
+
+The original experiments report the following results:
+
+| Metric | Result | What it measures |
+|---|:---:|---|
+| **OKS — primary challenge** | **0.575** | COCO-style keypoint similarity under stricter thresholds |
+| **OKS — loose threshold** | **0.795** | Keypoint similarity under a more permissive threshold |
+| **PCK@0.2** | **0.787** | Joints predicted within the normalized distance threshold |
+| **Flip-test improvement** | **≈ 3–5%** | OKS gain from horizontal-flip inference averaging |
+
+### 📈 Performance Profile
+
+**Works best when:**
+
+- the main subject is centered and clearly visible;
+- the person fills approximately 70–90% of the frame height;
+- left and right limbs are visually separated;
+- lighting and image sharpness are sufficient.
+
+**Remains challenging when:**
+
+- multiple people overlap heavily;
+- joints are occluded or outside the frame;
+- the pose contains extreme articulation;
+- motion blur or unusual viewpoints hide local detail.
+
+---
+
+## 🎯 Application Areas
+
+| Domain | Example use |
+|---|---|
+| 🏃 **Sports analytics** | Technique review, joint-angle estimation, and movement-form comparison |
+| 🏋️ **Fitness coaching** | Exercise alignment checks and repetition-stage analysis |
+| 🩺 **Rehabilitation research** | Supervised range-of-motion and left-right symmetry assessment |
+| 🎬 **Animation and media** | Pose references for character motion and visual effects |
+| 🛡️ **Safety research** | Body-state and posture cues for controlled monitoring environments |
+| 🤟 **Assistive systems** | Pose features for gesture and sign-language research pipelines |
+
+---
+
+## 🚀 Quick Start
+
+### 1️⃣ Clone the Repository
 
 ```bash
+git clone https://github.com/AsadAliEng/AI-Human-Pose-Analysis-System.git
+cd AI-Human-Pose-Analysis-System
 git submodule update --init --recursive
 ```
 
-- install requirements
+### 2️⃣ Create a Virtual Environment
 
-```bash
-pip3 install -r requirements.txt
+<details open>
+<summary><strong>🪟 Windows PowerShell</strong></summary>
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
 ```
 
-- install imgaug (required for training data augmentation only, not needed for inference)
+</details>
+
+<details>
+<summary><strong>🐧 Linux / macOS</strong></summary>
 
 ```bash
-pip3 install "setuptools<81"
-pip3 install --no-build-isolation "imgaug @ git+https://github.com/jasoncmyers/imgaug.git"
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
 ```
 
-- install dataset (requires just under 30 GB after unzipping, but will require at least 45 GB free disk space to unzip a ~18 GB training set)
+</details>
+
+### 3️⃣ Launch the Application
+
+```bash
+streamlit run human_pose_app.py
+```
+
+### 4️⃣ Run Inference
+
+1. Upload an image containing a clearly visible person.
+2. Keep automatic person detection enabled for uncropped images.
+3. Review the detected subject and normalized crop.
+4. Inspect the predicted keypoints, confidence heatmaps, and skeleton.
+5. If localization fails, crop the subject manually and retry.
+
+---
+
+## 🧪 Training with COCO 2017
+
+<details>
+<summary><strong>Open dataset and training setup</strong></summary>
+
+### 📦 Install the Optional Augmentation Dependency
+
+`imgaug` is required for training-time augmentation, not normal inference.
+
+```bash
+pip install "setuptools<81"
+pip install --no-build-isolation "imgaug @ git+https://github.com/jasoncmyers/imgaug.git"
+```
+
+### ⬇️ Download the Dataset
 
 ```bash
 bash ./scripts/coco_dl.sh
 ```
 
-## Troubleshooting
+### 💾 Storage Planning
 
-- If you encounter any pip issues installing `pycocotools`, manually install directly a version that's been updated for Python 3. See [this Stack Overflow pycocotools question](https://stackoverflow.com/questions/49311195/how-to-install-coco-pythonapi-in-python3)
+| Stage | Approximate space |
+|---|---:|
+| Compressed training archive | **18 GB** |
+| Extracted dataset | **30 GB** |
+| Recommended free space during setup | **45+ GB** |
 
-```bash
-pip3 install git+https://github.com/philferriere/cocoapi.git#subdirectory=PythonAPI
-```
+During preprocessing, annotations with fewer than five visible keypoints are filtered. Multi-person images are converted into centered single-person crops, and every visible landmark is represented as a Gaussian heatmap.
 
-- If you encounter issues running the evaluation code (specifically for OKS), you may need an earlier version of `numpy`:
+</details>
 
-```bash
-pip3 install numpy==1.17.0
-```
+---
 
-## CI / CD
+## 🔬 Technical Deep Dive
 
-A GitHub Actions workflow (`.github/workflows/reboot-streamlit.yml`) automatically reboots the Streamlit Cloud app whenever changes are pushed to `main`. This clears stale caches so the deployed app picks up new code immediately.
+<details>
+<summary><strong>Why use heatmaps instead of direct coordinate regression?</strong></summary>
 
-**Required repository secrets** (configure under *Settings → Secrets and variables → Actions*):
+Direct coordinate regression requires the model to learn a highly nonlinear mapping from every image pixel to exact joint positions. Heatmaps retain local spatial uncertainty, allowing the network to represent a likely region before selecting the final maximum.
 
-| Secret | Description |
-|--------|-------------|
-| `STREAMLIT_API_TOKEN` | API token generated from the [Streamlit Cloud dashboard](https://share.streamlit.io/) under *Settings → API tokens* |
-| `STREAMLIT_APP_ID` | App identifier visible in the Streamlit Cloud dashboard URL or via `GET /v1/apps` |
+</details>
 
-## Abstract
+<details>
+<summary><strong>Why use stacked hourglass modules?</strong></summary>
 
-Human pose estimation (HPE) is the task of identifying body keypoints on an input image to construct a body model. The motivation for this topic was driven by the exciting applications of HPE: pedestrian behaviour detection, sign language translation, animation and film, security systems, sports science, and many others. HPE shares many challenges with typical computer vision problems, such as intra-class variations, lighting, perspective, and object occlusions. It also faces challenges unique to HPE such as strong articulations, small and barely visible joints, and self-occlusions from overlapping joints. This report discusses a stacked hourglass network architecture that was developed and trained from scratch to achieve performance comparable with models on the COCO leaderboard from late 2016. This work uses the existing COCO 2017 Keypoint Detection dataset. The final model performs very well on most images, especially those containing well-separated people with the subject centered in frame. It struggles with images containing highly overlapped people or heavily occluded or articulated keypoints.
+Human pose estimation needs global context and local precision at the same time. Each hourglass compresses features to reason about the full body, then restores resolution while combining encoder detail through skip connections.
 
-## Introduction
+</details>
 
-Our group created a stacked hourglass network that was trained on the Common Objects in Context (COCO) dataset. Our network predicts a maximum of 17 keypoints spanning the full human body on a 2D image. A number of challenges make HPE a difficult problem domain; these challenges include variability in human appearance and physique, environment lighting and weather, occlusions from other objects, self-occlusions from overlapping joints, complexity of movements of the human skeleton, and the inherent loss of information with a 2D image input. This largely unsolved problem enabled us to explore many novel and creative approaches, enriching our learning experience. We are excited to report the results we yielded.
+<details>
+<summary><strong>Why apply intermediate supervision?</strong></summary>
 
-## Method
+Each hourglass stack emits a pose estimate and receives its own training signal. This improves gradient flow, reduces optimization difficulty, and encourages later stacks to refine ambiguous left/right or partially occluded joints.
 
-The following sections were summarized from the final report. This report is not fully complete, and will be available later. Please feel free to reach out to view it sooner.
+</details>
 
-### Problem Formulation
+---
 
-HPE systems can be categorized into 2D vs 3D and single-person vs multi-person. To improve the feasibility of our project, we have focused on single-frame single-person monocular RGB images. Current state-of-the-art techniques for 2D single-person HPE can be categorized into two categories: regression on absolute joint position, or detection on joint locations with heat maps. Since a direct mapping from the input space to joint coordinates is a highly non-linear problem, heat-map-based approaches have proven to be more robust by including small-region information. Thus, we have chosen the heat map approach.
+## ⚠️ Limitations & Responsible Use
 
-There are three different types of models used with full body HPE: kinematic, contour, and volumetric, as shown in Fig. \ref{fig:body_model} \cite{Chen_2020}. A kinematic model resembles a stick-figure skeleton. The contour model consists of 2D squares and rectangles that represent the body, and the volumetric model represents the body with 3D cylinders. The kinematic model is the simplest model to perform loss metric computations, and thus is preferred by our group as a scope-limiting decision to simplify the problem space. Our goal is to predict a kinematic model for the individual in each picture.
+- The inference workflow is primarily designed for **one person per crop**.
+- In a multi-person frame, the most prominent center-weighted subject is selected.
+- Accuracy may fall under occlusion, blur, unusual viewpoints, or overlapping limbs.
+- Results depend on how closely input imagery resembles the COCO training distribution.
+- Production sports or healthcare use requires temporal tracking, camera calibration, domain-specific validation, and human review.
+- This project is a research and educational system—not a medical diagnostic device.
 
-We chose to use the COCO Keypoint dataset \cite{coco_data}. This dataset consists of 330 K images, of which 200 K are labelled. There are pre-sorted subsets of this dataset specific for HPE competitions: COCO16 and COCO17. These contain 147 K images labelled with bounding boxes, joint locations, and human body segmentation masks. We originally considered using DensePose, which is a highly detailed manually annotated subset of the COCO dataset, but found it does not offer joint coordinate labels. Another popular dataset is the MPII dataset, which consists of 41 K labelled images split into 29 K train and 12 K test. We originally planned to use this for validating our model’s performance.
+---
 
-### Dataset
+## 📚 Project Background & References
 
-There are 66,808 images in the COCO dataset containing a total of 273,469 annotations. As shown in Fig. \ref{fig:coco_metrics} a), most of the annotations in the COCO dataset do not have all 17 keypoints of the body labelled. The model should not expect a perfect human image with all keypoints visible in frame. The model should instead output a dynamic number of keypoints based on what it can find. But what is the purpose of an annotation with 0 to 4 labelled keypoints? Fig. \ref{fig:zero_kp_images} shows examples of these annotations with few labelled keypoints. Clearly the bounding boxes of these annotations denote people, but because there are not many keypoints, these examples may confuse the model. If the model should be shown examples with 0 keypoints, then images that do not contain people would be more helpful. 5 keypoints was chosen intuitively as the minimum number of keypoints for a usable example; any less and the image rarely contains enough information to clearly make out a person. Therefore, despite the fact that 0-4 keypoint annotations make up 48.86\% of the total COCO dataset annotations, these annotations were filtered out during training.
+This project builds on the open-source [COCO Human Pose](https://github.com/robertklee/COCO-Human-Pose) implementation and the stacked hourglass approach for human pose estimation. The redesigned documentation preserves that technical foundation while presenting the work as a structured computer-vision case study.
 
-Even though our goal is a model that estimates the pose of a single person in the image, 61.28\% of the COCO images contain more than one annotated person. The annotations per image are broken down in Fig. \ref{fig:coco_metrics} b). It would be desirable if multi person images did not need to be discarded, so cropping to a bounding box converts a multi person image into a single person image. Keeping these images with multiple people has many benefits. The main benefit is training the model to label the person in the direct center of the image, in cases where multiple people (and thus multiple joints) are present. This is a more realistic use of the model, as it is unlikely that real-world images are always single-person. The other benefit is training on a much larger dataset.
+- 📄 [Stacked Hourglass Networks for Human Pose Estimation](https://arxiv.org/abs/1603.06937)
+- 🗂️ [COCO 2017 Keypoints Dataset](https://cocodataset.org/#keypoints-2017)
+- 🖥️ [Streamlit Documentation](https://docs.streamlit.io/)
+- 👁️ [OpenCV Documentation](https://docs.opencv.org/)
 
-The pre-processing responsibilities of the data generator include: cropping to the ground truth bounding box of a person, resizing to the models input resolution and dimensions, performing random data augmentation, and converting ground truth annotations for each keypoint to a Gaussian heatmap for the cropped images. Fig. \ref{fig:data_gen_ex} shows an example of the transformations. Fig. \ref{fig:data_gen_ex} only shows the cropping for one person but since there are 4 annotated people, the image would get split into 4 images, each centered on the person of interest. Fig. \ref{fig:data_gen_ex} also only shows the heat map of the left hand, but since COCO annotations contain 17 keypoints, it produces 17 heatmaps per annotation.
+---
 
-### Network Architecture
+## 👨‍💻 Developer & Maintainer
 
-The network is based on Newell 2016's stacked hourglass network. It consists of a series of stacked U-Nets. The network gets its name because the U-Nets resemble hourglass structures. Each U-Net, shown in Fig. \ref{fig:single_hourglass} is a lightweight encoder-decoder structure that consists of residual blocks with either convolution or upsampling applied for the encoder and decoder stages, respectively. Unlike typical U-Nets that have proven successful for problem domains such as semantic segmentation, this network does not use unpooling or deconvolutional layers during the decoder stage. Instead, nearest neighbour upsampling is used. Skip connections link feature levels of the same spatial resolution in the encoder and decoder stages. This structure allows the network to combine information from deep abstract features, and local high-resolution information.
+<div align="center">
 
-The input to the entire model is a RGB image of resolution 256x256. Since performing operations at original resolution is expensive in compute and memory, all the internal hourglass stacks have a max resolution of  64x64. Thus, between the input layer and the first hourglass block, the input resolution is brought down from 256x256 to 64x64 by using the following operations: a 7x7 convolutional layer with stride 2, a residual module, and max pooling.
+<a href="https://github.com/AsadAliEng">
+  <img src="https://github.com/AsadAliEng.png?size=160" width="140" alt="Asad Ali GitHub profile">
+</a>
 
-The input to each hourglass block is at a resolution of 64x64. The encoder block performs top-down processing, where the image spatial domain is decreased while increasing feature depth. After each convolution block, max pooling is applied to reduce in spatial size. The network also branches off at the pre-pooled resolution to apply more convolutions to form the \textit{skip connections}. At the smallest stage in the middle of the hourglass, which is denoted the \textit{bottleneck}, the network is at a resolution of 4x4 pixels. Here, the convolution operations can compare global features in the image. To reconstruct the original resolution, the network applies nearest-neighbour upsampling and joins feature information from the skip connections. The final resolution is identical to the input at 64x64, and the network is fully symmetric.
+### Asad Ali
 
-At the output resolution, the network predictions are constructed by applying two rounds of 1x1 convolutions to the extracted features. This forms a series of 17 one-channel heatmaps, one for each joint, where the intensity of the pixel value corresponds to the probability that a joint is found at that location. This intermediate prediction is added with the feature map and used as input to the next layer. In essence, each block in this architecture performs a refinement of predictions generated by the previous block. The number of hourglass blocks does not affect the output resolution, since each block is symmetric.
+**Developer · Repository Maintainer**
 
-#### Intermediate Supervision
+<p>
+  <a href="https://github.com/AsadAliEng">
+    <img src="https://img.shields.io/badge/GitHub-AsadAliEng-181717?style=for-the-badge&logo=github" alt="GitHub profile">
+  </a>
+  <a href="mailto:asadali.cryptoeng@gmail.com">
+    <img src="https://img.shields.io/badge/Email-asadali.cryptoeng%40gmail.com-EA4335?style=for-the-badge&logo=gmail&logoColor=white" alt="Email Asad Ali">
+  </a>
+</p>
 
-Deep networks can often suffer from vanishing gradients, which is where the gradients of the loss function approach zero deep into the network. This is often due to the activation functions, such as sigmoid, having a range of values where the gradient is extremely small. Since these gradients multiplied together using the chain rule during backpropagation, this can cause the gradient to disappear deep into the networks. These gradients are used to update the weights during backpropagation, so vanishing gradients can stall learning and result in a poorly performing network.
+| Detail | Information |
+|---|---|
+| 👤 **Name** | Asad Ali |
+| 💻 **GitHub** | [@AsadAliEng](https://github.com/AsadAliEng) |
+| 📧 **Email** | [asadali.cryptoeng@gmail.com](mailto:asadali.cryptoeng@gmail.com) |
 
-To mitigate this problem, the network architecture uses both residual blocks and intermediate supervision. Residual blocks adds both the modified output from the convolution and activation operations, and the original values. This permits an alternative path for gradients to flow through the network. Since this network is highly symmetric, intermediate supervision was used as well. The ideal output for a perfect network would have each hourglass block output identical heatmaps, we extract intermediate prediction heatmaps to perform loss function evaluations. This allows the network to re-introduce gradients deep into the network, reducing the risk of vanishing gradients.
+<sub>Open to technical discussions, collaboration, and computer-vision research.</sub>
 
-### Prediction
+</div>
 
-To gain insight into our model's predictions, we first visualized and compared the 17 output heatmaps, corresponding to COCO joints, from each successive hourglass layer with the image's ground truth heatmaps. This is shown for a 4 layer hourglass model in Fig. \ref{fig:Visualization} a). This figure shows the architecture refinement in the top right corner, where the model originally predicts two points on the heatmap with approximately equal brightness until gaining more confidence on one point in the final hourglass layer. Often, this refinement would help distinguish the models confusion between the left and right of each joint. In order to evaluate the model, we converted the predicted heatmaps back into COCO formatted keypoints. This conversion was accomplished by first upscaling each heatmap from 64x64 to the original image size of 256x256, then using a gaussian filter to blur each heatmap, and finally choosing the maximum point in the heatmap with non-maximum suppression by forcing values less than the determined threshold of 0.04 to 0. One set of keypoint coordinates is determined for each heatmap and later used for evaluating the model. For qualitative assessment of the model, a method to visualize the estimated keypoints in a skeleton overlayed on the input image was implemented, shown in Fig. \ref{fig:Visualization} b).
+---
 
-### Evaluation
+<div align="center">
 
-The goal of this project was to develop an HPE model that can perform with high accuracy and generalize well to unseen data. The success of the model was measured using 2 quantifiable metrics common to the HPE literature \cite{Babu_2019}.
+## ⭐ AI Human Pose Analysis System
 
-The first metric that was implemented for evaluation was OKS. We computed this metric across epochs to determine our models with the highest accuracy. Each model has rapid improvement in the first 5 epochs and further epochs have slower and more gradual improvement as seen in Fig. \ref{fig:OKS_graph_hg4_flip}. Our highest performing model was able to achieve an OKS primary challenge metric score of 0.575 and an OKS loose metric score of 0.795. This score is competitive with models on the COCO leaderboard from 2016. Using horizontally flipped images and taking the average bumped the scores by 3-5\% for this metric. OKS is commonly reported in the literature in terms of AR (average recall) and AP (average precision). It was implemented using the COCO Python API \cite{coco_keypoints}. The API allows for evaluation of results and the ability to compute precision and recall of OKS across scales. It required that our model outputs be formatted according to the COCO keypoint detection standard \cite{coco_format_results}. Beyond model evaluation, the API also provided methods for detailed analysis of errors with plots that were explored and aided in parameter tuning.
+**Detect • Localize • Understand Movement**
 
-The second metric was PCK \cite{Cbsudux_2019} which we implemented ourselves, separately from the COCO evaluation API. There are a number of variations of PCK, and from our research it does not appear to be a standardized metric. PCK considers a detected joint as correct if the distance between the predicted and the true joint is within a specified threshold. We implemented a variation of PCK@0.2, which uses a threshold of 20\% of the torso diameter from the ground truth keypoints. Since the literature is not clear on the metric's behaviour when one or both hip points are not present, we implemented a secondary measure of 20\% of the head diameter. Our default case is an empirically determined average hip width from the dataset if neither a torso or head was detected in the image. Our highest performing model achieved 0.787 on average for each joint PCK. The model PCK over epochs is graphed in Fig. \ref{fig:PCK_graph_hg4_no_flip}. The results broken down for each joint are specified in Table \ref{table:pck_breakdown}.
+Built for explainable pose estimation, computer-vision research, and responsible movement analysis.
+
+<sub>If this project helps your research, consider starring the repository.</sub>
+
+</div>
